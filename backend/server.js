@@ -4,7 +4,10 @@ import dotenv from 'dotenv';
 import axios from 'axios';
 import productsRoutes from './routes/products.js';
 import scrapeRoutes from './routes/scrape.js';
+import cronRoutes from './routes/cron.js';
 
+// Register route
+app.use('/api/cron', cronRoutes);
 dotenv.config();
 
 const app = express();
