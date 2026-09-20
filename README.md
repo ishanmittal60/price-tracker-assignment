@@ -6,7 +6,7 @@ A full-stack web application designed to track product prices and stock availabi
 
 ---
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 * **Frontend:** React.js (Deployed on Vercel)
 * **Backend:** Node.js, Express (Deployed on Render)
@@ -16,7 +16,7 @@ A full-stack web application designed to track product prices and stock availabi
 
 ---
 
-## 🚀 Setup Instructions
+##  Setup Instructions
 
 ### 1. Clone the Repository
 
@@ -60,14 +60,14 @@ npm run dev
 
 ---
 
-## ⏰ Scraping Schedule
+##  Scraping Schedule
 
 * **Frequency:** Every 2 hours.
 * **Mechanism:** An external cron trigger via [cron-job.org](https://www.google.com/search?q=https://www.cron-job.org&utm_source=gemini) sends an HTTP `GET` request to the backend cron endpoint (`/api/cron`), which loops through all tracked products, executes the Playwright scraper, and records the latest price and stock status in Supabase.
 
 ---
 
-## 🔑 Environment Variables
+##  Environment Variables
 
 ### Backend (`backend/.env`)
 
@@ -80,7 +80,7 @@ SUPABASE_ANON_KEY=your_supabase_anon_key
 
 ---
 
-## 📝 Design Note & Technical Challenges
+##  Design Note & Technical Challenges
 
 ### 1. Making Scraping Reliable & Trade-offs Made
 
