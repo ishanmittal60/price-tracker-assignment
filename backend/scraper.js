@@ -38,6 +38,26 @@ async function acceptCookies(page) {
   }
 }
 
+// Helper to dismiss lazy-loading cookie overlays that pop up asynchronously and block clicks
+async function dismissCookieOverlay(page) {
+  try {
+    const overlay = page.locator(".cookie-overlay");
+    if (await overlay.count() > 0 && await overlay.isVisible()) {
+      const acceptBtn = overlay.getByRole("button", { name: /accept/i }).first();
+      if (await acceptBtn.count() > 0) {
+        await acceptBtn.click({ force: true }).catch(() => { });
+      } else {
+        await page.evaluate(() => {
+          document.querySelectorAll(".cookie-overlay").forEach(el => el.remove());
+        });
+      }
+      await sleep(300);
+    }
+  } catch {
+    // Ignore if overlay isn't present
+  }
+}
+
 function extractPrice(text) {
   if (!text) return null;
 
@@ -243,13 +263,16 @@ async function scrapeOnce(url, headless) {
     if (initialPrice === null) {
       await satisfyPriceInteraction(page, priceBlock);
 
+      // Dismiss any lazy-loading cookie banner blocking pointer events before clicking
+      await dismissCookieOverlay(page);
+
       const button = revealButton(page);
       if (!(await button.isEnabled().catch(() => false))) {
         throw new Error("Reveal Price is still disabled after interaction");
       }
 
       console.log("Clicking Reveal Price...");
-      await button.click();
+      await button.click({ force: true });
     }
 
     const result = await waitForPrice(page, priceBlock);
