@@ -1,64 +1,106 @@
+
+
 # Product Price Tracker
 
-This is a full-stack web application designed to monitor product prices and stock on a specific e-commerce store (`https://demo.inelabteamdev.com/`). It features an Express/Node.js backend with Playwright for scraping, a Supabase PostgreSQL database, and a React (Vite) frontend with Tailwind CSS.
+A full-stack web application designed to track product prices and stock availability over time from a mock storefront, featuring automated background scheduling, robust error logging, and resilient web scraping.
 
-## Getting Started
+---
 
-### Database Setup (Supabase)
-1. Create a new Supabase project.
-2. Run the SQL commands found in `schema.sql` in the Supabase SQL editor to create the `products`, `price_history`, and `scrape_logs` tables.
-3. Retrieve your Supabase URL and Service Role Key.
+## 🛠️ Tech Stack
 
-### Backend Setup
-1. Navigate to the `backend/` directory:
-   ```bash
-   cd backend
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Install Playwright browsers (if needed):
-   ```bash
-   npx playwright install chromium
-   ```
-4. Create a `.env` file in the `backend/` folder:
-   ```env
-   SUPABASE_URL=your_supabase_url
-   SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
-   PORT=5000
-   ```
-5. Note: Replace `scraper.js` and `db.js` contents with your existing working code if applicable. The provided files contain basic placeholders.
-6. Start the development server:
-   ```bash
-   npm run dev
-   ```
+* **Frontend:** React.js (Deployed on Vercel)
+* **Backend:** Node.js, Express (Deployed on Render)
+* **Database & Storage:** Supabase (PostgreSQL)
+* **Scraping Engine:** Playwright (Headless Chromium)
+* **Scheduling:** cron-job.org (Scheduled every 2 hours)
 
-### Frontend Setup
-1. Navigate to the `frontend/` directory:
-   ```bash
-   cd frontend
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Create a `.env` file in the `frontend/` folder:
-   ```env
-   VITE_API_BASE_URL=http://localhost:5000/api
-   ```
-4. Start the frontend development server:
-   ```bash
-   npm run dev
-   ```
+---
 
-## Key Features
-- **Add Products:** Track new products by providing their name and URL.
-- **Manual Scraping:** Trigger a headed Playwright instance to scrape product details on demand.
-- **Cron Scraping:** Endpoint (`/api/scrape/cron`) ready to be hit by cron-job.org every 2 hours to automate tracking.
-- **Price History:** View price and stock trends over time using interactive Recharts graphs.
-- **Honest Logging:** View a detailed log of every scrape attempt (success, failure, or retried) for reliable tracking.
+## 🚀 Setup Instructions
 
-## Deployment
-- **Frontend:** Ready to be deployed on Vercel. Connect your repository and select the Vite preset.
-- **Backend:** Ready to be deployed on Render (Node.js Web Service). Make sure to set up your environment variables (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`).
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/ishanmittal60/price-tracker-assignment.git
+cd price-tracker-assignment
+
+```
+
+### 2. Backend Setup
+
+```bash
+cd backend
+npm install
+
+```
+
+Create a `.env` file inside the `backend` folder with your configuration (see [Environment Variables](https://www.google.com/search?q=%2523-environment-variables&utm_source=gemini)).
+
+Run the backend locally:
+
+```bash
+npm run dev
+
+```
+
+### 3. Frontend Setup
+
+```bash
+cd ../frontend
+npm install
+
+```
+
+Run the frontend locally:
+
+```bash
+npm run dev
+
+```
+
+---
+
+## ⏰ Scraping Schedule
+
+* **Frequency:** Every 2 hours.
+* **Mechanism:** An external cron trigger via [cron-job.org](https://www.google.com/search?q=https://www.cron-job.org&utm_source=gemini) sends an HTTP `GET` request to the backend cron endpoint (`/api/cron`), which loops through all tracked products, executes the Playwright scraper, and records the latest price and stock status in Supabase.
+
+---
+
+## 🔑 Environment Variables
+
+### Backend (`backend/.env`)
+
+```env
+PORT=5000
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_ANON_KEY=your_supabase_anon_key
+
+```
+
+---
+
+## 📝 Design Note & Technical Challenges
+
+### 1. Making Scraping Reliable & Trade-offs Made
+
+* **Trade-off (Playwright vs. Lightweight HTTP):** While lightweight HTTP scrapers (like Axios/Cheerio) are faster and lighter, the target mock store genuinely requires JavaScript execution and interactive mouse movements to unlock hidden prices. Therefore, **Playwright** was chosen to guarantee high correctness over speed.
+* **Resilience:** To handle slow responses or missing elements, the scraper includes automated cookie-banner dismissal, bounding-box checks, and a 3-attempt retry loop with backoff. Failures are never hidden and are recorded honestly in the Supabase `scrape_logs` table.
+
+### 2. Technical Difficulties & AI Collaboration Points
+
+During development, collaborating with AI tools helped accelerate problem-solving on specific tricky edge cases:
+
+* **Render Environment Browser Binaries:**
+* *The Difficulty:* On the first deployment, Render's container lacked Playwright's Chromium binaries, resulting in `executable not found` errors.
+* *The AI Correction:* The AI suggested adding a `"postinstall": "npx playwright install chromium"` script to `package.json` alongside a runtime fallback check to ensure binaries download cleanly on cloud containers.
+
+
+* **Mock Store Anti-Bot Mouse Requirements:**
+* *The Difficulty:* The target store's frontend script tracks mouse coordinates and requires specific minimum move counts and dwell times before enabling the "Reveal Price" button. Standard clicks failed initially.
+* *The AI Correction:* AI helped structure the `satisfyPriceInteraction` function to programmatically dispatch throttled `mousemove` and `mouseenter` native DOM events across precise bounding box coordinate ratios, mimicking realistic user interaction.
+
+
+* **Free-Tier Spin-down Handling:**
+* *The Difficulty:* Render's free tier spins down after inactivity, causing initial cron job timeouts.
+* *The AI Correction:* AI assisted in designing a lightweight sequential loop with built-in delays in the cron route handler to ensure the server wakes up gracefully and processes requests without crashing under rate limits.
