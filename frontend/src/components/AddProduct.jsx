@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { api } from '../api/client';
-import axios from 'axios';
+import client, { api } from '../api/client';
 
 export default function AddProduct({ onProductAdded, onAdd }) {
   const [query, setQuery] = useState('');
@@ -8,16 +7,16 @@ export default function AddProduct({ onProductAdded, onAdd }) {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Fetch full catalog from the mock store once on load
+  // Fetch full catalog from the backend proxy on load
   useEffect(() => {
     const fetchCatalog = async () => {
       try {
-        const response = await axios.get((import.meta.env.VITE_API_BASE_URL || '') + '/api/catalog');
+        const response = await client.get('/catalog');
         // Safely extract the array whether it is a direct array or nested inside an object
         const data = Array.isArray(response.data) ? response.data : (response.data.items || response.data.data || []);
         setCatalog(data);
       } catch (error) {
-        console.error('Error fetching catalog. It may be blocked by CORS:', error);
+        console.error('Error fetching catalog:', error);
       }
     };
     fetchCatalog();
@@ -31,7 +30,6 @@ export default function AddProduct({ onProductAdded, onAdd }) {
     }
 
     // Fallback: If user pastes a full URL, bypass the catalog search and let them track the URL directly
-    // Look up the real item in catalog if a URL is pasted
     if (query.includes('demo.inelabteamdev.com/product/')) {
       const productId = query.split('/product/')[1]?.replace(/\D/g, '');
       const matchedItem = catalog.find((p) => String(p.id) === String(productId));
@@ -43,9 +41,9 @@ export default function AddProduct({ onProductAdded, onAdd }) {
       }
       return;
     }
+
     const lowerCaseQuery = query.toLowerCase();
     const filtered = catalog.filter((item) => {
-      // Safely check properties with optional chaining (?.) to prevent crashes if a property is missing
       const nameMatch = item.name?.toLowerCase().includes(lowerCaseQuery);
       const titleMatch = item.title?.toLowerCase().includes(lowerCaseQuery);
       const brandMatch = item.brand?.toLowerCase().includes(lowerCaseQuery);
@@ -67,7 +65,6 @@ export default function AddProduct({ onProductAdded, onAdd }) {
         category: "Custom",
         brand: "Unknown"
       } : {
-        // Fallback to title if name is missing
         product_name: item.name || item.title || 'Unknown Product',
         product_url: `https://demo.inelabteamdev.com/product/${item.id}`,
         sku: item.sku || 'N/A',
@@ -90,7 +87,7 @@ export default function AddProduct({ onProductAdded, onAdd }) {
   return (
     <div className="glass-panel p-6 mb-8 relative">
       <h2 className="text-xl font-bold text-white mb-1">Track New Product</h2>
-      <p className="text-slate-400 text-sm mb-4">Search the catalog or paste a product URL directly</p>
+      <p className="text-slate-400 text-sm mb-4">Search the catalog by name or paste a product URL directly</p>
 
       <input
         type="text"
