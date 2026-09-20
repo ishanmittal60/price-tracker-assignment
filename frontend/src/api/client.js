@@ -3,7 +3,7 @@ import axios from 'axios';
 // Create an Axios instance with base URL for the backend API
 // We now rely on Vite's proxy for /api, so the base URL is simply /api
 const client = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://price-tracker-assignment.onrender.com',
   headers: {
     'Content-Type': 'application/json',
   },
