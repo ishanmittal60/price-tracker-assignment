@@ -1,24 +1,22 @@
-
-
 # Product Price Tracker
 
-A full-stack web application designed to track product prices and stock availability over time from a mock storefront, featuring automated background scheduling, robust error logging, and resilient web scraping.
+This is a web application that tracks product prices and stock details from a store website (`demo.inelabteamdev.com`). It checks prices automatically in the background, handles website popups and bot checks, and saves the history in a database.
 
 ---
 
-##  Tech Stack
+## Tech Stack
 
-* **Frontend:** React.js (Deployed on Vercel)
-* **Backend:** Node.js, Express (Deployed on Render)
-* **Database & Storage:** Supabase (PostgreSQL)
-* **Scraping Engine:** Playwright (Headless Chromium)
-* **Scheduling:** cron-job.org (Scheduled every 2 hours)
+* **Frontend:** React.js (hosted on Vercel)
+* **Backend:** Node.js and Express (hosted on Render)
+* **Database:** Supabase (PostgreSQL)
+* **Web Scraper:** Playwright (Chromium browser)
+* **Scheduler:** cron-job.org (runs every 2 hours)
 
 ---
 
-##  Setup Instructions
+## Setup Instructions
 
-### 1. Clone the Repository
+### 1. Download the Project
 
 ```bash
 git clone https://github.com/ishanmittal60/price-tracker-assignment.git
@@ -34,12 +32,13 @@ npm install
 
 ```
 
-Create a `.env` file inside the `backend` folder with your configuration (see [Environment Variables](https://www.google.com/search?q=%2523-environment-variables&utm_source=gemini)).
-
-Run the backend locally:
+* Make a new file named `.env` inside the `backend` folder.
+* Add your keys (see the Environment Variables section below).
+* Run the backend server:
 
 ```bash
 npm run dev
+# or: node server.js
 
 ```
 
@@ -51,7 +50,7 @@ npm install
 
 ```
 
-Run the frontend locally:
+* Run the frontend site:
 
 ```bash
 npm run dev
@@ -60,16 +59,17 @@ npm run dev
 
 ---
 
-##  Scraping Schedule
+## Scraping Schedule
 
-* **Frequency:** Every 2 hours.
-* **Mechanism:** An external cron trigger via [cron-job.org](https://www.google.com/search?q=https://www.cron-job.org&utm_source=gemini) sends an HTTP `GET` request to the backend cron endpoint (`/api/cron`), which loops through all tracked products, executes the Playwright scraper, and records the latest price and stock status in Supabase.
+* **How often it runs:** Every 2 hours.
+* **How it works:** A free tool called cron-job.org sends a `POST` request to `https://<your-backend-url>/api/scrape/cron`.
+* **Background Work:** Render free servers take time to start, and scraping takes more than 30 seconds. Because cron-job.org stops waiting after 30 seconds, the server sends back a quick success message first and then finishes the scraping work in the background.
 
 ---
 
-##  Environment Variables
+## Environment Variables
 
-### Backend (`backend/.env`)
+Create a file named `.env` inside your `backend` folder and add this:
 
 ```env
 PORT=5000
@@ -78,29 +78,23 @@ SUPABASE_ANON_KEY=your_supabase_anon_key
 
 ```
 
+If you need Supabase directly on the frontend, add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` to `frontend/.env`.
+
 ---
 
-##  Design Note & Technical Challenges
+## Problems We Faced and Fixed
 
-### 1. Making Scraping Reliable & Trade-offs Made
+### 1. Late Cookie Banner Blocking Clicks
 
-* **Trade-off (Playwright vs. Lightweight HTTP):** While lightweight HTTP scrapers (like Axios/Cheerio) are faster and lighter, the target mock store genuinely requires JavaScript execution and interactive mouse movements to unlock hidden prices. Therefore, **Playwright** was chosen to guarantee high correctness over speed.
-* **Resilience:** To handle slow responses or missing elements, the scraper includes automated cookie-banner dismissal, bounding-box checks, and a 3-attempt retry loop with backoff. Failures are never hidden and are recorded honestly in the Supabase `scrape_logs` table.
+* **The Problem:** The store website shows a cookie banner 2 to 5 seconds after the page loads. When our code tried to click the "Reveal Price" button, the cookie banner popped up on top and blocked the click. This made the scraper wait and fail.
+* **How We Fixed It:** We wrote a helper function that removes the cookie banner directly from the webpage and adds a rule to hide it before the button is clicked.
 
-### 2. Technical Difficulties & AI Collaboration Points
+### 2. Mouse Movement Checks
 
-During development, collaborating with AI tools helped accelerate problem-solving on specific tricky edge cases:
+* **The Problem:** The website hides the price until a user moves the mouse across the price box. Simple automated clicks did not unlock the price button.
+* **How We Fixed It:** We made the mouse move across the price box slowly in small steps. If that does not work, the code sends mouse events directly to the box so the button turns on.
 
-* **Render Environment Browser Binaries:**
-* *The Difficulty:* On the first deployment, Render's container lacked Playwright's Chromium binaries, resulting in `executable not found` errors.
-* *The AI Correction:* The AI suggested adding a `"postinstall": "npx playwright install chromium"` script to `package.json` alongside a runtime fallback check to ensure binaries download cleanly on cloud containers.
+### 3. The 30-Second Timeout
 
-
-* **Mock Store Anti-Bot Mouse Requirements:**
-* *The Difficulty:* The target store's frontend script tracks mouse coordinates and requires specific minimum move counts and dwell times before enabling the "Reveal Price" button. Standard clicks failed initially.
-* *The AI Correction:* AI helped structure the `satisfyPriceInteraction` function to programmatically dispatch throttled `mousemove` and `mouseenter` native DOM events across precise bounding box coordinate ratios, mimicking realistic user interaction.
-
-
-* **Free-Tier Spin-down Handling:**
-* *The Difficulty:* Render's free tier spins down after inactivity, causing initial cron job timeouts.
-* *The AI Correction:* AI assisted in designing a lightweight sequential loop with built-in delays in the cron route handler to ensure the server wakes up gracefully and processes requests without crashing under rate limits.
+* **The Problem:** cron-job.org gives up and shows an error if the server takes longer than 30 seconds to answer. Because starting Render and scraping products takes longer than that, the tests were failing.
+* **How We Fixed It:** We changed the server to answer cron-job.org right away with a 200 OK message, and then it continues scraping the products in the background.
