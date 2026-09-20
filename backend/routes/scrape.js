@@ -9,7 +9,6 @@ const router = express.Router();
 router.post('/cron', async (req, res) => {
   try {
     const products = await getAllProducts();
-    const results = [];
     let successCount = 0;
     let failedCount = 0;
 
@@ -17,7 +16,7 @@ router.post('/cron', async (req, res) => {
     for (const product of products) {
       const url = product.product_url;
       const scrapeResult = await scrapeProduct(url, true); // headless
-      
+
       if (scrapeResult.success) {
         successCount++;
         // Record successful history
@@ -27,7 +26,7 @@ router.post('/cron', async (req, res) => {
           stock_status: scrapeResult.data.stock_status,
           stock_quantity: scrapeResult.data.stock_quantity,
         });
-        
+
         // Log success
         await logScrapeAttempt({
           product_url: url,
@@ -43,16 +42,20 @@ router.post('/cron', async (req, res) => {
           error_message: scrapeResult.error
         });
       }
-      results.push({ url, success: scrapeResult.success });
-      
+
       // Delay between each product in the loop to avoid rate-limiting
       await new Promise(r => setTimeout(r, 2000));
     }
 
-    res.status(200).json({ 
-      message: 'Cron scrape completed', 
-      summary: { total: products.length, success: successCount, failed: failedCount },
-      results 
+    // Return a lightweight response to prevent "output too large" errors on cron-job.org
+    res.status(200).json({
+      success: true,
+      message: 'Cron scrape completed successfully',
+      summary: {
+        total: products.length,
+        success: successCount,
+        failed: failedCount
+      }
     });
   } catch (error) {
     console.error('Cron scrape error:', error);
@@ -72,7 +75,7 @@ router.post('/manual', async (req, res) => {
     }
 
     const scrapeResult = await scrapeProduct(targetUrl, true); // headless
-    
+
     if (scrapeResult.success) {
       await recordPriceHistory({
         product_url: targetUrl,
